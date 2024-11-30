@@ -1,0 +1,25 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <time.h>
+
+
+// Generateur de variable aleatoire
+
+
+int main(void)
+{
+    int NBR_OPS;
+    printf("Combien d'operateurs : ");
+    scanf("%d", NBR_OPS);
+
+    float lambda;
+    printf("Quelle valeur pour lambda : ");
+    scanf("%f", lambda);
+
+    int minsrv, maxsrv;
+    printf("Quel intervalle de temps pour l'echange :");
+    scanf("%d %d", minsrv, maxsrv);
+
+
+}
