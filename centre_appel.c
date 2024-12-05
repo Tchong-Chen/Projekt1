@@ -34,17 +34,16 @@ typedef struct T_noeud {
 
 //Fonctions utilise dans le programme  et leur role:
 
-double intervalle_tps(void);                                // Renvoie la duree entre l'appel de 2 clients
-int* simu_arrivee(void);                                    // Cree et renvoie un tableau contenant les heures d'arrive des differents clients
-bool compare_tps(int j, int *tab);                          // comparaison entre tableau de simu_arrivee et l'heure actuelle
-int tps_prise_en_charge(void);                              // Renvoie la duree de prise en charge, (choisit au hasard entre minsrv et maxsrv)
-void ajout_client(T_noeud *file, struct Client nv_client);  // Ajoute un client a la liste chainee
-T_noeud pop_client(T_noeud *tete);                           // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
-int compte_client(T_noeud *tete);                           // Compte le nombre de clients present dans la file ??? File d'attente 
-int* ops_libre(int* tableau);                               // Prend un tableau contenant les operateurs, et determine si ils sont libres ou pas
-int convertisseur_tps(int n);                               // Transforme un entier en seconde et renvoie , l'heure, la minute et la seconde.
-void ecrireFicClients(T_noeud *Donnes, FILE *fp);           // Ecrit les donnes dans un fichier
-int tps_attente(T_noeud *Donnees);                          // Renvoie les donnes des temps d'attente
+double intervalle_tps(void);                                                // Renvoie la duree entre l'appel de 2 clients
+int* simu_arrivee(void);                                                    // Cree et renvoie un tableau contenant les heures d'arrive des differents clients
+bool compare_tps(int j, int *tab);                                          // comparaison entre tableau de simu_arrivee et l'heure actuelle
+int tps_prise_en_charge(void);                                              // Renvoie la duree de prise en charge, (choisit au hasard entre minsrv et maxsrv)
+void ajout_client(T_noeud *file, struct Client nv_client);                  // Ajoute un client a la liste chainee
+struct Client pop_client(T_noeud *tete);                                    // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
+int compte_client(T_noeud *tete);                                           // Compte le nombre de clients present dans la file ??? File d'attente 
+int* ops_libre(int* tableau);                                               // Prend un tableau contenant les operateurs, et determine si ils sont libres ou pas
+void convertisseur_tps(int n, int *heures, int *minutes, int *secondes);     // Transforme un entier en seconde et renvoie , l'heure, la minute et la seconde.
+void ecrireFicClients(T_noeud *Donnes, FILE *fp);                           // Ecrit les donnes dans un fichier
 
 
 // Intervalle de temps separant deux clients
@@ -112,29 +111,35 @@ void ajout_client(T_noeud *file, struct Client nv_client)
 
 // retirer un client de la file
 
-Client pop_client(T_noeud *tete) 
+struct Client pop_client(T_noeud *tete) 
 {
-    if ( tete == NULL)
-        return;
+    T_noeud *nouveau = tete;
 
-    if ((tete) -> suiv == NULL) 
+    if (nouveau == NULL)
     {
-        Client *sauvegarde = (tete) -> data;
+        struct Client sauvegarde;
+        sauvegarde.h_arrivee = -1;
+        return sauvegarde;
+    }
+
+    if (nouveau -> suiv == NULL) 
+    {
+        struct Client sauvegarde = tete->data;
         free(tete);
         tete = NULL;
         return sauvegarde;
     }
 
     T_noeud *courant = tete;
-    while (courant -> (suiv -> suiv) != NULL) 
+    while (courant -> suiv -> suiv != NULL) 
         courant = courant -> suiv;
 
     T_noeud *dernier = courant -> suiv ;
-    int *sauvegarde = dernier -> data ;
+    struct Client sauvegarde = dernier -> data ;
     courant -> suiv = NULL;
 
     free(dernier);
-    return sauvegarde->data ;
+    return sauvegarde ;
 }
 
 
@@ -145,7 +150,7 @@ int compte_client(T_noeud *tete)
     int compteur = 0;
     T_noeud *courant = tete;
 
-    while(courant -> suiv != NULL)
+    while(courant != NULL)
     {
         compteur++;
         courant = courant -> suiv;
@@ -171,24 +176,21 @@ int* ops_libre(int* tableau)
 }
 
 // Converti un temp en seconde en heure/minute/seconde
-int convertisseur_tps(int n)
+void convertisseur_tps(int n, int *heures, int *minutes, int *secondes)
 {
-    int heures, minutes, secondes;
-    heures = n / 3600;
-    n %= 3600;
-    minutes = n / 60;
-    secondes = n % 60;
-    return heures, minutes, secondes;
+    *heures = n / 3600 ;
+    n %= 3600 ;
+    *minutes = n / 60 ;
+    *secondes = n % 60 ;
 }
 
-
-void ecrireFicClients(T_noeud *Donnes, FILE *fp)
+void ecrireFicClients(T_noeud *Donnees, FILE *fp)
 {
   T_noeud *Nouveau;
 
   fp = fopen(NOM_FIC_DONNES, "a");
 
-  Nouveau = Donnes->suiv;
+  Nouveau = Donnees->suiv;
   while (Nouveau != NULL)
   {
     fprintf(fp, "%d %d %d %d %d\n", Nouveau->data.jour, Nouveau->data.h_arrivee, Nouveau->data.duree_attente, Nouveau->data.debut_prise_en_charge, Nouveau->data.fin_prise_en_charge );
@@ -223,47 +225,43 @@ int tps_attente(T_noeud *Donnees)
 }
 
 
-
-
-
 int main(void)
 {
-    srand(time(NULL));  // initialise pour l'utilisation de random
+    srand(time(NULL));
     
-    T_noeud *file_attente;
-    file_attente -> suiv = NULL;    //Creation de la file d'attente sous forme de liste chainee
+    T_noeud *file_attente = malloc(sizeof(T_noeud)) ;
+    file_attente -> suiv = NULL;    // Creation de la file d'attente sous forme de liste chainee
 
-    T_noeud *Donnees;
-    Donnees -> suiv = NULL;         // Creation d'une file ou seront stocker les clients
+    T_noeud *Donnees = malloc(sizeof(T_noeud));
+    Donnees -> suiv = NULL;         // Creation d'une file ou seront stockes les clients
 
     FILE *fp;
-    fp = fopen(NOM_FIC_DONNES, "w");  //On initialise le fichier
+    fp = fopen(NOM_FIC_DONNES, "w");  //Initialisation du fichier
 
     // Initialisation des tableaux & variables pour etude de performance 
-    int* compteur_file_attente[NBR_HEURES * 3600] = {0};
-    int max_file_attente ;
-    int min_file_attente ;
-    float moy_file_attente = 0.0 ;
+    int moy_file_attente;
+    int max_file_attente = 0; // On initialise a des valeurs random afin de pouvoir les comparer
+    int min_file_attente = 5;
 
-    float debit_journalier_moyen ;          // Nombre moyen d'appel pris en charge par 
-    float nbr_client_par_jour = 0.0 ;       // On utilise un float pour eviter probleme de type lors d'un calcul plus tard
-    float taux_client_pris_en_charge ;
-    int h_fin_de_service ;
+    float debit_journalier_moyen;
+    float nbr_client_par_jour = 0.0;       // On utilise un float pour eviter probleme de type lors d'un calcul plus tard
+    float taux_client_pris_en_charge;
+    int h_fin_de_service;
 
-    // creation centre appel ; un tableau contenant les operateur, >= 1 si ils sont occupe, 0 si ils sont libres
-
+    // Creation centre appel ; un tableau contenant les operateur, >= 1 s'ils sont occupes, 0 s'ils sont libres
     int simu_centre_appel[NBR_OPS] = {0};
-// Simulation
-    for(int i = 0; i <= NBR_JOUR; i++)
+
+    // Simulation
+    for(int i = 0; i < NBR_JOUR; i++)
     {   
         
         // tableau contenant l'heure d'arrivee des clients
         int *heure_arrivee = simu_arrivee();
 
-        for(int j = 0; j <= 24 * 3600; i++)
+        for(int j = 0; j < 24 * 3600; j++)
         {
             // regarde si un client est arrive
-            if (compare_tps(j, heure_arrivee) && j <= NBR_HEURES * 3600)   // Faut que le client arrive dans une des heure travailles
+            if (compare_tps(j, heure_arrivee) && j <= NBR_HEURES * 3600)
             {
                 struct Client client;
                 client.h_arrivee = j;
@@ -273,76 +271,86 @@ int main(void)
             // regarde s'il y a des gens dans la file d'attente & si un operateur est libre
             // si oui, enregistre son tps de debut de prise en charge + genere une duree aleatoire de conversation client/ops
             int compteur = compte_client(file_attente);
+            printf("Jour %d, Heure actuelle : %d, Nombre de clients en attente : %d\n", i, j, compte_client(file_attente));
             int *libre = ops_libre(simu_centre_appel); // renvoie un tableau avec 0 si l'operateur est libre
             for(int k = 0; k < NBR_OPS; k++)
             {
                 if ((libre[k] == 0) && (compteur >= 1))
                 {
                     compteur = compteur - 1;
-                    Client client = pop_client(*file_attente);
-                    client.jour = i ;
+                    struct Client client = pop_client(file_attente);
+                    printf("1\n");
+                    //Donnees a ajouter
                     client.debut_prise_en_charge = j;
-                    simu_centre_appel[k] = tps_prise_en_charge();
-                    client.duree_attente = j - client.h_arrivee ;
-                    client.fin_prise_en_charge = j + simu_centre_appel[k] ;
+                    int tps_conversation = tps_prise_en_charge();
+                    simu_centre_appel[k] = tps_conversation;
+                    client.duree_attente = j - client.h_arrivee;
+                    client.fin_prise_en_charge = j + tps_conversation;
+                    client.jour = i;
                     ajout_client(Donnees, client);                              // On enregistre les differentes donnes dans client puis on l'ajoute a la liste des donnes.
                 }
             }
-
+            printf("2\n");
             // simule la seconde passee
             for(int l = 0; l < NBR_OPS; l++)  //Si 
             {
                 if (simu_centre_appel[l] > 0)
                     simu_centre_appel[l] = simu_centre_appel[l] - 1;
             }
-
-            compteur_file_attente[i] = compte_client(file_attente);
+            printf("3\n");
+            moy_file_attente = moy_file_attente + compteur;
+            if (compteur < min_file_attente)
+                min_file_attente = compteur;
+            if (compteur > max_file_attente)
+                max_file_attente = compteur;
 
             if (compte_client(file_attente) == 0)
             {
                 int ok = 0;
-                while(simu_centre_appel[ok] == 0)
+                while(simu_centre_appel[ok] == 0 && ok < NBR_OPS)
                     ok++;
                 if (ok == NBR_OPS)
-                    h_fin_de_service = j;
+                    if (j < NBR_HEURES * 3600)
+                        h_fin_de_service = NBR_HEURES * 3600;
+                    else 
+                        h_fin_de_service = j;
             }
+            printf("4\n");
         }
-//Traitement des donnes
-        for(int i = 0; i < NBR_HEURES * 3600; i++)
-        {
-            moy_file_attente = moy_file_attente + compteur_file_attente[i];
-            if (compteur_file_attente[i] < min_file_attente)
-                min_file_attente = &compteur_file_attente[i];
-            else if (compteur_file_attente[i] > max_file_attente)
-                max_file_attente = &compteur_file_attente[i];
-        }
-        moy_file_attente = moy_file_attente / (NBR_HEURES * 3600.0);
-        moy_file_attente = ceil(moy_file_attente); //arrondi la moyenne
 
-        for(int i = 0; i < 10000; i++)
+// Traitement des donnes
+        moy_file_attente = moy_file_attente / (NBR_HEURES * 3600.0);
+        moy_file_attente = ceil(moy_file_attente); //arrondit a l'entier superieur
+
+        for(int n = 0; n < 10000; n++)
         {
-            if (heure_arrivee[i] <= 24 * 3600)
+            if (heure_arrivee[n] <= 24 * 3600)
                 nbr_client_par_jour++;
-                if (heure_arrivee[i] <= NBR_HEURES * 3600)
+                if (heure_arrivee[n] <= NBR_HEURES * 3600)
                     debit_journalier_moyen++;
                     taux_client_pris_en_charge++;
             
         }
+
         debit_journalier_moyen = debit_journalier_moyen / (NBR_HEURES * 3600.0);
         taux_client_pris_en_charge = taux_client_pris_en_charge / nbr_client_par_jour;
-        int heures, minutes, secondes = convertisseur_tps(h_fin_de_service);
-        int min_attente, max_attente, moy_attente, tps_rep_moy = tps_attente(T_noeud *Donnees)
+
+        int heures, minutes, secondes;
+        convertisseur_tps(h_fin_de_service, &heures, &minutes, &secondes);
+        int min_attente, max_attente, moy_attente, tps_rep_moy = tps_attente(Donnees);
 
         // Affichage des performances de la journee
-        printf("Pour le jour : %d , On a :\n\n")
-        printf("Debit journalier moyen : %d appel/sec\n", debit_journalier_moyen);
+        printf("Pour le jour : %d , On a : \n\n", i);
+        printf("Debit journalier moyen : %1f \n", debit_journalier_moyen);
         printf("Taux client pris en charge : %3f \n", taux_client_pris_en_charge);
-        printf("Taille de la file d'attente :\n  min : %d  max = %d  moy = %1f \n", min_file_attente, max_file_attente, moy_file_attente);
-        printf("Heure de fin de service :     %d : %d : %d \n", heures, minutes, secondes);
-        printf("Temps moyen d'attente (en seconde)  :\n min : %d  max = %d  moy = %1f \n", min_attente, max_attente, moy_attente);
+        printf("Taille de la file d'attente : \n min : %d  max = %d  moy = %d \n", min_file_attente, max_file_attente, moy_file_attente);
+        printf("Heure de fin de servide :     %d : %d : %d \n", heures, minutes, secondes);
+        printf("Temps moyen d'attente (en seconde)  :\n min : %d  max = %d  moy = %d \n", min_attente, max_attente, moy_attente);
         printf("Temps de reponse moyen en seconde : %d \n", tps_rep_moy);
 
+
     }
-    fclose(fp); //On ferme le fichier
+    ecrireFicClients(Donnees, fp);
+    fclose(fp);
     return 0;
 }
