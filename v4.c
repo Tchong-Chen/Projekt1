@@ -39,7 +39,7 @@ int* simu_arrivee(void);                                    // Cree et renvoie u
 bool compare_tps(int j, int *tab);                          // comparaison entre tableau de simu_arrivee et l'heure actuelle
 int tps_prise_en_charge(void);                              // Renvoie la duree de prise en charge, (choisit au hasard entre minsrv et maxsrv)
 void ajout_client(T_noeud *file, struct Client nv_client);  // Ajoute un client a la liste chainee
-struct pop_client(T_noeud *tete);                           // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
+struct Client pop_client(T_noeud *tete);                           // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
 int compte_client(T_noeud *tete);                           // Compte le nombre de clients present dans la file ??? File d'attente 
 int* ops_libre(int* tableau);                               // Prend un tableau contenant les operateurs, et determine si ils sont libres ou pas
 int convertisseur_tps(int n);                               // Transforme un entier en seconde et renvoie , l'heure, la minute et la seconde.
@@ -111,35 +111,35 @@ void ajout_client(T_noeud *file, struct Client nv_client)
 
 // retirer un client de la file
 
-struct pop_client(T_noeud *tete) 
+struct Client pop_client(T_noeud *tete) 
 {
     T_noeud *nouveau = tete;
 
     if (nouveau == NULL)
     {
-        Client *sauvegarde;
-        sauvegarde -> h_arrivee = -1;
+        struct Client sauvegarde;
+        sauvegarde.h_arrivee = -1;
         return sauvegarde;
     }
 
     if (nouveau -> suiv == NULL) 
     {
-        Client *sauvegarde = (tete) -> data;
+        struct Client sauvegarde = (tete) -> data;
         free(tete);
         tete = NULL;
         return sauvegarde;
     }
 
     T_noeud *courant = tete;
-    while (courant -> (suiv -> suiv) != NULL) 
+    while (courant -> suiv -> suiv != NULL) 
         courant = courant -> suiv;
 
     T_noeud *dernier = courant -> suiv ;
-    Client *sauvegarde = dernier -> data ;
+    struct Client sauvegarde = dernier -> data ;
     courant -> suiv = NULL;
 
     free(dernier);
-    return sauvegarde->data ;
+    return sauvegarde ;
 }
 
 
@@ -280,7 +280,7 @@ int main(void)
                 if ((libre[k] == 0) && (compteur >= 1))
                 {
                     compteur = compteur - 1;
-                    struct Client client = pop_client(*file_attente);
+                    struct Client client = pop_client(file_attente);
 
                     //Donnees a ajouter
                     client.debut_prise_en_charge = j;
@@ -349,7 +349,7 @@ int main(void)
 
 
     }
-    ecrireFicClients(Donnees);
+    ecrireFicClients(Donnees, fp);
     fclose(fp);
     return 0;
 }
