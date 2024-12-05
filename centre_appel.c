@@ -71,9 +71,9 @@ struct Client {
     int fin_prise_en_charge;
 } ;
 
-typedef struct Noeud {
+typedef struct T_noeud {
     struct Client data;
-    struct noeud *suiv;
+    struct T_noeud *suiv;
 } T_noeud;
 
 
@@ -81,14 +81,13 @@ typedef struct Noeud {
 
 void ajout_client(T_noeud *file, struct Client nv_client)
 {
-    T_noeud *tete = file;
     T_noeud *nouveau;
 
     nouveau = ((T_noeud *) malloc(sizeof(T_noeud)));
 
     nouveau -> data = nv_client;
-    nouveau -> suiv = tete;
-    *tete = nouveau;
+    nouveau -> suiv = *file;
+    *file = nouveau;
 }
 
 
@@ -151,6 +150,18 @@ int* ops_libre(int* tableau)
     return libre;
 }
 
+
+int convertisseur_tps(int n)
+{
+    int heures, minutes, secondes;
+    heures = n / 3600;
+    n %= 3600;
+    minutes = total_secondes / 60;
+    secondes = total_secondes % 60;
+    return heures, minutes, secondes;
+}
+
+
 int main(void)
 {
     srand(time(NULL));
@@ -158,14 +169,18 @@ int main(void)
     T_noeud *file_attente;
     file_attente -> suiv = NULL;
 
+    struct* Donnees_client
+
     // Initialisation des tableaux & variables pour etude de performance 
     int* compteur_file_attente[NBR_HEURES * 3600] = {0};
     int max_file_attente = 0;
     int min_file_attente = 5;
     float moy_file_attente = 0.0;
+    int* attente[]
     int debit_journalier_moyen;
     float nbr_client_par_jour = 0.0;
     float taux_client_pris_en_charge;
+    int h_fin_de_service;
 
     // creation centre appel
     int simu_centre_appel[NBR_OPS] = {0};
@@ -178,8 +193,7 @@ int main(void)
 
         for(int j = 0; j <= 24 * 3600; i++)
         {
-            // creation centre appel
-            int simu_centre_appel[NBR_OPS] = {0};
+            int* heure_arrivee = simu_arrivee();
 
             // regarde si un client est arrive
             if (compare_tps(j, heure_arrivee) && j <= NBR_HEURES * 3600)
@@ -202,6 +216,11 @@ int main(void)
                     client.debut_prise_en_charge = j;
                     simu_centre_appel[k] = tps_prise_en_charge();
                 }
+                
+                // l'operateur aura fini avec le client dans la prochaine seconde
+                if (simu_centre_appel[k] == 1)
+                {
+                }
             }
             
             // simule la seconde passee
@@ -212,15 +231,24 @@ int main(void)
             }
 
             compteur_file_attente[i] = compte_client(file_attente);
+
+            if (compte_client(file_attente) == 0)
+            {
+                int ok = 0;
+                while(simu_centre_appel[ok] == 0)
+                    ok++;
+                if (ok == NBR_OPS)
+                    h_fin_de_service = j;
+            }
         }
 
         for(int i = 0; i < NBR_HEURES * 3600; i++)
         {
             moy_file_attente = moy_file_attente + compteur_file_attente[i];
             if (compteur_file_attente[i] < min_file_attente)
-                min_file_attente = compteur_file_attente[i];
+                min_file_attente = &compteur_file_attente[i];
             else if (compteur_file_attente[i] > max_file_attente)
-                max_file_attente = compteur_file_attente[i];
+                max_file_attente = &compteur_file_attente[i];
         }
         moy_file_attente = moy_file_attente / (NBR_HEURES * 3600.0);
         moy_file_attente = ceil(moy_file_attente);
@@ -236,11 +264,14 @@ int main(void)
         }
         debit_journalier_moyen = debit_journalier_moyen / (NBR_HEURES * 3600.0);
         taux_client_pris_en_charge = taux_client_pris_en_charge / nbr_client_par_jour;
+        int heures, minutes, secondes = convertisseur_tps(h_fin_de_service);
 
         // Affichage des performances de la journee
         printf("Debit journalier moyen : %d \n", debit_journalier_moyen);
         printf("Taux client pris en charge : %3f \n", taux_client_pris_en_charge);
         printf("Taille de la file d'attente : \n min : %d  max = %d  moy = %1f \n", min_file_attente, max_file_attente, moy_file_attente);
+        printf("Heure de fin de servide :     %d : %d : %d \n", heures, minutes, secondes);
+
     }
     return 0;
 }
