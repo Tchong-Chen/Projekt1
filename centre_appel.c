@@ -44,6 +44,7 @@ int compte_client(T_noeud *tete);                           // Compte le nombre 
 int* ops_libre(int* tableau);                               // Prend un tableau contenant les operateurs, et determine si ils sont libres ou pas
 int convertisseur_tps(int n);                               // Transforme un entier en seconde et renvoie , l'heure, la minute et la seconde.
 void ecrireFicClients(T_noeud *Donnes, FILE *fp);           // Ecrit les donnes dans un fichier
+int tps_attente(T_noeud *Donnees);                          // Renvoie les donnes des temps d'attente
 
 
 // Intervalle de temps separant deux clients
@@ -118,7 +119,7 @@ Client pop_client(T_noeud *tete)
 
     if ((tete) -> suiv == NULL) 
     {
-        int *sauvegarde = (tete) -> data;
+        Client *sauvegarde = (tete) -> data;
         free(tete);
         tete = NULL;
         return sauvegarde;
@@ -196,6 +197,34 @@ void ecrireFicClients(T_noeud *Donnes, FILE *fp)
 }
 
 
+int tps_attente(T_noeud *Donnees)
+{
+    T_noeud *courant = Donnees;
+    int min_attente = courant -> data.duree_attente;
+    int max_attente = courant -> data.duree_attente;
+    int moy_attente;
+    int tps_rep_moy;
+    float compteur = 0.0;
+
+    while(courant -> suiv != NULL)
+    {
+        moy_attente = moy_attente + courant -> data.duree_attente;
+        tps_rep_moy = tps_rep_moy + (courant -> data.fin_prise_en_charge - courant -> data.h_arrivee);
+
+        if (courant -> data.duree_attente < min_attente)
+            min_attente = courant -> data.duree_attente;
+        if (courant -> data.duree_attente < max_attente)
+            max_attente = courant -> data.duree_attente;
+        
+        compteur++;
+        courant = courant -> suiv;
+    }
+    return min_attente, max_attente, ceil(moy_attente / compteur), ceil(tps_rep_moy / compteur);
+}
+
+
+
+
 
 int main(void)
 {
@@ -204,6 +233,8 @@ int main(void)
     T_noeud *file_attente;
     file_attente -> suiv = NULL;    //Creation de la file d'attente sous forme de liste chainee
 
+    T_noeud *Donnees;
+    Donnees -> suiv = NULL;         // Creation d'une file ou seront stocker les clients
 
     FILE *fp;
     fp = fopen(NOM_FIC_DONNES, "w");  //On initialise le fichier
@@ -248,13 +279,16 @@ int main(void)
                 if ((libre[k] == 0) && (compteur >= 1))
                 {
                     compteur = compteur - 1;
-                    T_noeud client = pop_client(*file_attente);
-                    //Donnes a rajouter
+                    Client client = pop_client(*file_attente);
+                    client.jour = i ;
                     client.debut_prise_en_charge = j;
                     simu_centre_appel[k] = tps_prise_en_charge();
+                    client.duree_attente = j - client.h_arrivee ;
+                    client.fin_prise_en_charge = j + simu_centre_appel[k] ;
+                    ajout_client(Donnees, client);                              // On enregistre les differentes donnes dans client puis on l'ajoute a la liste des donnes.
                 }
             }
-            
+
             // simule la seconde passee
             for(int l = 0; l < NBR_OPS; l++)  //Si 
             {
@@ -297,12 +331,16 @@ int main(void)
         debit_journalier_moyen = debit_journalier_moyen / (NBR_HEURES * 3600.0);
         taux_client_pris_en_charge = taux_client_pris_en_charge / nbr_client_par_jour;
         int heures, minutes, secondes = convertisseur_tps(h_fin_de_service);
+        int min_attente, max_attente, moy_attente, tps_rep_moy = tps_attente(T_noeud *Donnees)
 
         // Affichage des performances de la journee
-        printf("Debit journalier moyen : %d \n", debit_journalier_moyen);
+        printf("Pour le jour : %d , On a :\n\n")
+        printf("Debit journalier moyen : %d appel/sec\n", debit_journalier_moyen);
         printf("Taux client pris en charge : %3f \n", taux_client_pris_en_charge);
-        printf("Taille de la file d'attente : \n min : %d  max = %d  moy = %1f \n", min_file_attente, max_file_attente, moy_file_attente);
-        printf("Heure de fin de servide :     %d : %d : %d \n", heures, minutes, secondes);
+        printf("Taille de la file d'attente :\n  min : %d  max = %d  moy = %1f \n", min_file_attente, max_file_attente, moy_file_attente);
+        printf("Heure de fin de service :     %d : %d : %d \n", heures, minutes, secondes);
+        printf("Temps moyen d'attente (en seconde)  :\n min : %d  max = %d  moy = %1f \n", min_attente, max_attente, moy_attente);
+        printf("Temps de reponse moyen en seconde : %d \n", tps_rep_moy);
 
     }
     fclose(fp); //On ferme le fichier
