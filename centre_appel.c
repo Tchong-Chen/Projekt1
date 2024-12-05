@@ -12,7 +12,7 @@
 #define NBR_JOUR 1
 #define minsrv 100 // en secondes
 #define maxsrv 600
-#define lambda 0.1
+#define lambda 0.06
 
 
 // Intervalle de temps separant deux clients
@@ -81,13 +81,13 @@ typedef struct Noeud {
 
 void ajout_client(T_noeud *file, struct Client nv_client)
 {
-    T_noeud *tete = NULL;
+    T_noeud *tete = file;
     T_noeud *nouveau;
 
     nouveau = ((T_noeud *) malloc(sizeof(T_noeud)));
 
     nouveau -> data = nv_client;
-    nouveau -> suiv = *tete;
+    nouveau -> suiv = tete;
     *tete = nouveau;
 }
 
@@ -112,7 +112,7 @@ struct pop_client(T_noeud *tete)
         courant = courant -> suiv;
 
     T_noeud *dernier = courant -> suiv;
-    int *auvegarde = dernier -> data
+    int *sauvegarde = dernier -> data
     courant -> suiv = NULL;
 
     free(dernier;)
@@ -125,9 +125,9 @@ struct pop_client(T_noeud *tete)
 int compte_client(T_noeud *tete)
 {
     int compteur = 0;
-    T_noeud courant = *tete;
+    T_noeud *courant = tete;
 
-    while(courant != NULL)
+    while(courant -> suiv != NULL)
     {
         compteur++;
         courant = courant -> suiv;
@@ -158,29 +158,40 @@ int main(void)
     T_noeud *file_attente;
     file_attente -> suiv = NULL;
 
+    // Initialisation des tableaux & variables pour etude de performance 
+    int* compteur_file_attente[NBR_HEURES * 3600] = {0};
+    int max_file_attente = 0;
+    int min_file_attente = 5;
+    float moy_file_attente = 0.0;
+    int debit_journalier_moyen;
+    float nbr_client_par_jour = 0.0;
+    float taux_client_pris_en_charge;
+
+    // creation centre appel
+    int simu_centre_appel[NBR_OPS] = {0};
+
     for(int i = 0; i <= NBR_JOUR; i++)
     {   
         
+        // tableau contenant l'heure d'arrivee des clients
+        int *heure_arrivee = simu_arrivee();
 
-        for(int j = 0; j <= NBR_HEURES * 3600; i++)
+        for(int j = 0; j <= 24 * 3600; i++)
         {
             // creation centre appel
             int simu_centre_appel[NBR_OPS] = {0};
 
-            // tableau contenant l'heure d'arrivee des clients
-            int *heure_arrivee = simu_arrivee();
-
             // regarde si un client est arrive
-            if (compare_tps(j, heure_arrivee))
+            if (compare_tps(j, heure_arrivee) && j <= NBR_HEURES * 3600)
             {
                 struct Client client;
                 client.h_arrivee = j;
-                ajout_client(*file_attente, client);
+                ajout_client(file_attente, client);
             }
 
             // regarde s'il y a des gens dans la file d'attente & si un operateur est libre
             // si oui, enregistre son tps de debut de prise en charge + genere une duree aleatoire de conversation client/ops
-            int compteur = compte_client(*file_attente);
+            int compteur = compte_client(file_attente);
             int *libre = ops_libre(simu_centre_appel);
             for(int k = 0; k < NBR_OPS; k++)
             {
@@ -199,6 +210,37 @@ int main(void)
                 if (simu_centre_appel[l] > 0)
                     simu_centre_appel[l] = simu_centre_appel[l] - 1;
             }
+
+            compteur_file_attente[i] = compte_client(file_attente);
         }
+
+        for(int i = 0; i < NBR_HEURES * 3600; i++)
+        {
+            moy_file_attente = moy_file_attente + compteur_file_attente[i];
+            if (compteur_file_attente[i] < min_file_attente)
+                min_file_attente = compteur_file_attente[i];
+            else if (compteur_file_attente[i] > max_file_attente)
+                max_file_attente = compteur_file_attente[i];
+        }
+        moy_file_attente = moy_file_attente / (NBR_HEURES * 3600.0);
+        moy_file_attente = ceil(moy_file_attente);
+
+        for(int i = 0; i < 10000; i++)
+        {
+            if (heure_arrivee[i] <= 24 * 3600)
+                nbr_client_par_jour++;
+                if (heure_arrivee[i] <= NBR_HEURES * 3600)
+                    debit_journalier_moyen++;
+                    taux_client_pris_en_charge++;
+            
+        }
+        debit_journalier_moyen = debit_journalier_moyen / (NBR_HEURES * 3600.0);
+        taux_client_pris_en_charge = taux_client_pris_en_charge / nbr_client_par_jour;
+
+        // Affichage des performances de la journee
+        printf("Debit journalier moyen : %d \n", debit_journalier_moyen);
+        printf("Taux client pris en charge : %3f \n", taux_client_pris_en_charge);
+        printf("Taille de la file d'attente : \n min : %d  max = %d  moy = %1f \n", min_file_attente, max_file_attente, moy_file_attente);
     }
+    return 0;
 }
