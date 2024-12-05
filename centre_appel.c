@@ -7,12 +7,13 @@
 
 // def constantes modifiable
 
-#define NBR_OPS 5       // Nombre d'operateur
-#define NBR_HEURES 11   // Duree de la journee
-#define NBR_JOUR 1      // Nombre de jour de la simulation
-#define minsrv 100      // Duree min du service
-#define maxsrv 600      // Duree max du service
-#define lambda 0.06     // lambda
+#define NBR_OPS 5                  // Nombre d'operateur
+#define NBR_HEURES 11              // Duree de la journee
+#define NBR_JOUR 1                 // Nombre de jour de la simulation
+#define minsrv 100                 // Duree min du service
+#define maxsrv 600                 // Duree max du service
+#define lambda 0.06                // lambda
+#define NOM_FIC_DONNES "Data.txt"  // Nom du fichier
 
 
 // Structure et liste chainee
@@ -21,6 +22,8 @@ struct Client {
     int h_arrivee;
     int debut_prise_en_charge;
     int fin_prise_en_charge;
+    int duree_attente;
+    int jour;
 } ;
 
 typedef struct T_noeud {
@@ -107,29 +110,29 @@ void ajout_client(T_noeud *file, struct Client nv_client)
 
 // retirer un client de la file
 
-T_noeud pop_client(T_noeud *tete) 
+Client pop_client(T_noeud *tete) 
 {
     if ( tete == NULL)
         return;
 
-    if ((*tete) -> suiv == NULL) 
+    if ((tete) -> suiv == NULL) 
     {
-        int *sauvegarde = (*tete) -> data;
-        free(*tete);
-        *tete = NULL;
+        int *sauvegarde = (tete) -> data;
+        free(tete);
+        tete = NULL;
         return sauvegarde;
     }
 
-    T_noeud *courant = *tete;
+    T_noeud *courant = tete;
     while (courant -> (suiv -> suiv) != NULL) 
         courant = courant -> suiv;
 
-    T_noeud *dernier = courant -> suiv;
-    int *sauvegarde = dernier -> data
+    T_noeud *dernier = courant -> suiv ;
+    int *sauvegarde = dernier -> data ;
     courant -> suiv = NULL;
 
-    free(dernier;)
-    return sauvegarde;
+    free(dernier);
+    return sauvegarde->data ;
 }
 
 
@@ -177,6 +180,22 @@ int convertisseur_tps(int n)
 }
 
 
+void ecrireFicClients(T_noeud *Donnes, FILE *fp)
+{
+  Client *client;
+
+  fp = fopen(NOM_FIC_DONNES, "a");
+
+  client = Donnes->tete;
+  while (client != NULL)
+  {
+    fprintf(fp, "%d %d %d %d %d\n", client->jour, client->h_arrivee, client->duree_attente, client->Heure_prise, client->h_fin_de_service );
+    client = client->suiv;
+  }
+}
+
+
+
 int main(void)
 {
     srand(time(NULL));  // initialise pour l'utilisation de random
@@ -184,13 +203,16 @@ int main(void)
     T_noeud *file_attente;
     file_attente -> suiv = NULL;
 
-    struct* Donnees_client
+    struct* Donnees_client;
+
+    FILE *fp;
+    fp = fopen(NOM_FIC_DONNES, "w");  //On initialise le fichier
 
     // Initialisation des tableaux & variables pour etude de performance 
     int* compteur_file_attente[NBR_HEURES * 3600] = {0};
-    int max_file_attente = 0;
-    int min_file_attente = 5;
-    float moy_file_attente = 0.0;
+    int max_file_attente ;
+    int min_file_attente ;
+    float moy_file_attente = 0.0 ;
     int* attente[]
     int debit_journalier_moyen;
     float nbr_client_par_jour = 0.0;
@@ -228,7 +250,7 @@ int main(void)
                 if ((libre[k] == 0) && (compteur >= 1))
                 {
                     compteur = compteur - 1;
-                    struct Client client = pop_client(*file_attente);
+                    Client client = pop_client(*file_attente);
                     client.debut_prise_en_charge = j;
                     simu_centre_appel[k] = tps_prise_en_charge();
                 }
@@ -289,5 +311,6 @@ int main(void)
         printf("Heure de fin de servide :     %d : %d : %d \n", heures, minutes, secondes);
 
     }
+    fclose(fp); //On ferme le fichier
     return 0;
 }
