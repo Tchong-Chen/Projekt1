@@ -52,7 +52,7 @@ int tps_attente(T_noeud *Donnees)
         compteur++;
         courant = courant -> suiv;
     }
-    return min_attente, max_attente, (moy_attente / compteur), (tps_rep_moy / compteur);
+    return min_attente, max_attente, ceil(moy_attente / compteur), ceil(tps_rep_moy / compteur);
 }
 
 
