@@ -7,12 +7,12 @@
 
 // def constantes modifiable
 
-#define NBR_OPS 2                  // Nombre d'operateur
+#define NBR_OPS 10                  // Nombre d'operateur
 #define NBR_HEURES 11              // Duree de la journee
 #define NBR_JOUR 1                 // Nombre de jour de la simulation
 #define minsrv 100                 // Duree min du service
 #define maxsrv 600                 // Duree max du service
-#define lambda 0.1                // lambda
+#define lambda 0.05                // lambda
 #define NOM_FIC_DONNES "Data.txt"  // Nom du fichier
 
 
@@ -38,7 +38,7 @@ double intervalle_tps(void);                                                // R
 int* simu_arrivee(void);                                                    // Cree et renvoie un tableau contenant les heures d'arrive des differents clients
 bool compare_tps(int j, int *tab);                                          // comparaison entre tableau de simu_arrivee et l'heure actuelle
 int tps_prise_en_charge(void);                                              // Renvoie la duree de prise en charge, (choisit au hasard entre minsrv et maxsrv)
-void ajout_client(T_noeud *file, struct Client nv_client);                  // Ajoute un client a la liste chainee
+void ajout_client(T_noeud **file, struct Client nv_client);                  // Ajoute un client a la liste chainee
 struct Client pop_client(T_noeud **tete);                                    // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
 int compte_client(T_noeud *tete);                                           // Compte le nombre de clients present dans la file ??? File d'attente 
 int* ops_libre(int* tableau);                                               // Prend un tableau contenant les operateurs, et determine si ils sont libres ou pas
@@ -97,17 +97,26 @@ int tps_prise_en_charge(void)
 
 // ajout d'un client dans la file
 
-void ajout_client(T_noeud *file, struct Client nv_client)
-{
-    T_noeud *nouveau;
+// Ajoute un client à la fin de la liste chaînée
+void ajout_client(T_noeud **file, struct Client nv_client) {
+    T_noeud *nouveau = (T_noeud *)malloc(sizeof(T_noeud));
 
-    nouveau = ((T_noeud *) malloc(sizeof(T_noeud)));
+    // Initialiser le noeud avec les données du client
+    nouveau->data = nv_client;
+    nouveau->suiv = NULL;
 
-    nouveau -> data = nv_client;
-    nouveau -> suiv = file;
-    file = nouveau;
+    // Si la liste est vide, le nouveau client devient la tête
+    if (*file == NULL) {
+        *file = nouveau;
+    } else {
+        // Parcourt jusqu'à la fin de la liste pour insérer le client
+        T_noeud *courant = *file;
+        while (courant->suiv != NULL) {
+            courant = courant->suiv;
+        }
+        courant->suiv = nouveau;
+    }
 }
-
 
 // retirer un client de la file
 
@@ -268,7 +277,7 @@ int main(void)
             {
                 struct Client client;
                 client.h_arrivee = j;
-                ajout_client(file_attente, client);
+                ajout_client(&file_attente, client);
             }
 
             // regarde s'il y a des gens dans la file d'attente & si un operateur est libre
@@ -289,7 +298,7 @@ int main(void)
                     client.duree_attente = j - client.h_arrivee;
                     client.fin_prise_en_charge = j + tps_conversation;
                     client.jour = i;
-                    ajout_client(Donnees, client);                              // On enregistre les differentes donnes dans client puis on l'ajoute a la liste des donnes.
+                    ajout_client(&Donnees, client);                              // On enregistre les differentes donnes dans client puis on l'ajoute a la liste des donnes.
                 }
             }
             // simule la seconde passee
@@ -307,7 +316,7 @@ int main(void)
             if (compte_client(file_attente) == 0)
             {
                 int ok = 0;
-                while(simu_centre_appel[ok] == 0 && ok < NBR_OPS)
+                while(ok < NBR_OPS && simu_centre_appel[ok] == 0 )
                     ok++;
                 if (ok == NBR_OPS)
                     if (j < NBR_HEURES * 3600)
