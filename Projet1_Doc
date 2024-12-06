@@ -1,0 +1,54 @@
+Présentation du programme
+
+L'objectif est de simuler le temps d’attente des clients d’un centre d’appel et de calculer des indicateurs de
+performance.
+Le systeme a les caracteristiques suivantes :
+Les clients appellent a des instants aleatoires. L’intervalle de temps separant l’arrivee de deux
+clients successifs est un nombre aleatoire modelise par une loi exponentielle de parametre λ, qui
+represente la frequence d’arrivee. Voir en annexe.
+Les clients sont mis dans une file d’attente et seront servis dans l’ordre d’arrivee (en fonction de
+la disponibilite des operateurs).
+Le centre est compose d’un ou plusieurs operateurs. Lorsqu’un operateur devient libre, il prend le
+premier client present dans la file.
+Lorsqu’un client est pris en charge par un operateur, l’echange a une duree aleatoire, qui suit une
+loi uniforme sur l’intervalle [minsrv, maxsrv].
+Les clients peuvent appeler de 8h  19h. Tout appel entre ces horaires est accepte et pris en charge
+jusqu’a la fin de son service.
+
+Le programme est écrit en C et utilise les bibliothèques standards suivantes :
+
+    stdio.h
+    stdlib.h
+    math.h
+    time.h
+    stdbool.h
+
+L'option -lm est requise pour lier la bibliothèque mathématique. Autrement, on aura une erreur
+
+Pour compiler le programme, il faut exécuter la commande suivante dans un terminal :
+
+    gcc -o centre_appel centre_appel.c -lm
+
+Une fois le programme compilé, vous pouvez l'exécuter avec la commande suivante :
+
+    ./centre_appel
+
+Le programme simule une ou plusieurs journee d'un centre d'appel et analyse ses donnees. En effet,en sortie la machine renvoie un ensemble d'indicateur de performance. On a la possibilite de modifier les parametre d'entrees
+
+Voici un exemple des resultats attendus:
+
+    Pour le jour : 0 , On a : 
+
+    Débit journalier moyen : 0.0546 
+    Taux client pris en charge : 0.95 
+    Taille de la file d'attente : 
+    min : 0  max = 3  moy = 1
+    Heure de fin de service :  23 : 59 : 59 
+    Temps moyen d'attente (en seconde)  :
+    min : 12  max = 120  moy = 60 
+    Temps de réponse moyen en seconde : 180
+
+Les résultats sont aussi sauvegardés dans le fichier Data.txt, avec les informations détaillées sur chaque client, telles que l'heure d'arrivée, le temps d'attente, le début et la fin de la prise en charge.
+
+On utilise les listes chaines pour stocker les informations des clients. Ceci facilite la gestion des donnees. On a decide de simuler le temps par deux boucle for imbriques.
+
