@@ -12,7 +12,7 @@
 #define NBR_JOUR 2                 // Nombre de jour de la simulation
 #define minsrv 100                 // Duree min du service
 #define maxsrv 600                 // Duree max du service
-#define lambda 0.1                // lambda
+#define lambda 0.001                // lambda
 #define NOM_FIC_DONNES "Data.txt"  // Nom du fichier
 
 
@@ -34,15 +34,15 @@ typedef struct T_noeud {
 
 //Fonctions utilise dans le programme  et leur role:
 
-double intervalle_tps(void);                                                // Renvoie la duree entre l'appel de 2 clients
-int* simu_arrivee(void);                                                    // Cree et renvoie un tableau contenant les heures d'arrive des differents clients
-bool compare_tps(int j, int *tab);                                          // comparaison entre tableau de simu_arrivee et l'heure actuelle
+double intervalle_tps(void);                                                // Renvoie la duree entre l'appel de 2 clients successifs
+int* simu_arrivee(void);                                                    // Cree et renvoie un tableau contenant les heures d'arrivee des differents clients
+bool compare_tps(int j, int *tab);                                          // Comparaison entre tableau de simu_arrivee et l'heure actuelle
 int tps_prise_en_charge(void);                                              // Renvoie la duree de prise en charge, (choisit au hasard entre minsrv et maxsrv)
-void ajout_client(T_noeud **file, struct Client nv_client);                  // Ajoute un client a la liste chainee
-struct Client pop_client(T_noeud **tete);                                    // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
-int compte_client(T_noeud *tete);                                           // Compte le nombre de clients present dans la file ??? File d'attente 
-int* ops_libre(int* tableau);                                               // Prend un tableau contenant les operateurs, et determine si ils sont libres ou pas
-void convertisseur_tps(int n, int *heures, int *minutes, int *secondes);     // Transforme un entier en seconde et renvoie , l'heure, la minute et la seconde.
+void ajout_client(T_noeud **file, struct Client nv_client);                 // Ajoute un client a la liste chainee
+struct Client pop_client(T_noeud **tete);                                   // Retire un client et renvoie les donnees du clients (Heure_prise en charge,Duree attente ....)
+int compte_client(T_noeud *tete);                                           // Compte le nombre de clients presents dans la file d'attente 
+int* ops_libre(int* tableau);                                               // Prend un tableau contenant les operateurs, et determine s'ils sont libres ou pas
+void convertisseur_tps(int n, int *heures, int *minutes, int *secondes);    // Transforme un entier en seconde et renvoie , l'heure, la minute et la seconde.
 void ecrireFicClients(T_noeud *Donnes, FILE *fp);                           // Ecrit les donnes dans un fichier
 
 
@@ -99,19 +99,19 @@ int tps_prise_en_charge(void)
 
 void ajout_client(T_noeud **file, struct Client nv_client) 
 {
-    T_noeud *nouveau = (T_noeud *)malloc(sizeof(T_noeud));
+    T_noeud *nouveau = (T_noeud *) malloc(sizeof(T_noeud));
 
-    nouveau->data = nv_client;
-    nouveau->suiv = NULL;
+    nouveau -> data = nv_client;
+    nouveau -> suiv = NULL;
 
     if (*file == NULL) 
         *file = nouveau;
     else 
     {
         T_noeud *courant = *file;
-        while (courant->suiv != NULL)
-            courant = courant->suiv;
-        courant->suiv = nouveau;
+        while (courant -> suiv != NULL)
+            courant = courant -> suiv;
+        courant -> suiv = nouveau;
     }
 }
 
@@ -128,23 +128,23 @@ struct Client pop_client(T_noeud **tete)
         return sauvegarde;
     }
 
-    if (courant->suiv == NULL) 
+    if (courant -> suiv == NULL) 
     {
-        struct Client sauvegarde = courant->data;
+        struct Client sauvegarde = courant -> data;
         free(courant);
         *tete = NULL;
         return sauvegarde;
     }
 
     T_noeud *precedent = NULL;
-    while (courant->suiv != NULL) 
+    while (courant -> suiv != NULL) 
     {
         precedent = courant;
-        courant = courant->suiv;
+        courant = courant -> suiv;
     }
 
-    struct Client sauvegarde = courant->data;
-    precedent->suiv = NULL; 
+    struct Client sauvegarde = courant -> data;
+    precedent -> suiv = NULL; 
     free(courant);
     return sauvegarde;
 }
@@ -182,7 +182,7 @@ int* ops_libre(int* tableau)
     return libre;
 }
 
-// Converti un temp en seconde en heure/minute/seconde
+// Convertit un temps en secondes en heure/minute/seconde
 void convertisseur_tps(int n, int *heures, int *minutes, int *secondes)
 {
     *heures = n / 3600 ;
@@ -197,38 +197,12 @@ void ecrireFicClients(T_noeud *Donnees, FILE *fp)
 
   fp = fopen(NOM_FIC_DONNES, "a");
 
-  Nouveau = Donnees->suiv;
+  Nouveau = Donnees -> suiv;
   while (Nouveau != NULL)
   {
-    fprintf(fp, "%d %d %d %d %d\n", Nouveau->data.jour, Nouveau->data.h_arrivee, Nouveau->data.duree_attente, Nouveau->data.debut_prise_en_charge, Nouveau->data.fin_prise_en_charge );
-    Nouveau = Nouveau->suiv;
+    fprintf(fp, "%d %d %d %d %d \n", Nouveau -> data.jour, Nouveau -> data.h_arrivee, Nouveau -> data.duree_attente, Nouveau -> data.debut_prise_en_charge, Nouveau -> data.fin_prise_en_charge );
+    Nouveau = Nouveau -> suiv;
   }
-}
-
-
-int tps_attente(T_noeud *Donnees)
-{
-    T_noeud *courant = Donnees;
-    int min_attente = courant -> data.duree_attente;
-    int max_attente = courant -> data.duree_attente;
-    int moy_attente;
-    int tps_rep_moy;
-    float compteur = 0.0;
-
-    while(courant -> suiv != NULL)
-    {
-        moy_attente = moy_attente + courant -> data.duree_attente;
-        tps_rep_moy = tps_rep_moy + (courant -> data.fin_prise_en_charge) - (courant -> data.h_arrivee);
-
-        if (courant -> data.duree_attente < min_attente)
-            min_attente = courant -> data.duree_attente;
-        if (courant -> data.duree_attente < max_attente)
-            max_attente = courant -> data.duree_attente;
-        
-        compteur++;
-        courant = courant -> suiv;
-    }
-    return min_attente, max_attente, ceil(moy_attente / compteur), ceil(tps_rep_moy / compteur);
 }
 
 
@@ -341,21 +315,20 @@ int main(void)
             
         }
 
-        debit_journalier_moyen = debit_journalier_moyen / (NBR_HEURES * 3600.0);
         taux_client_pris_en_charge = taux_client_pris_en_charge / nbr_client_par_jour;
+        debit_journalier_moyen = debit_journalier_moyen / (NBR_HEURES * 3600.0);
         moy_attente = ceil(moy_attente / nbr_client);
         tps_rep_moy = ceil(tps_rep_moy / nbr_client);
 
         int heures, minutes, secondes;
         convertisseur_tps(h_fin_de_service, &heures, &minutes, &secondes);
-        //int min_attente, max_attente, moy_attente, tps_rep_moy = tps_attente(Donnees);
 
         // Affichage des performances de la journee
         printf("Pour le jour : %d , On a : \n\n", i);
         printf("Debit journalier moyen : %1f \n", debit_journalier_moyen);
         printf("Taux client pris en charge : %3f \n", taux_client_pris_en_charge);
         printf("Taille de la file d'attente :      min : %d  max = %d  moy = %d \n", min_file_attente, max_file_attente, moy_file_attente);
-        printf("Heure de fin de servide :     %d : %d : %d \n", heures, minutes, secondes);
+        printf("Heure de fin de service :     %d : %d : %d \n", heures, minutes, secondes);
         printf("Temps moyen d'attente (en seconde)  :     min : %d  max = %d  moy = %d \n", min_attente, max_attente, moy_attente);
         printf("Temps de reponse moyen en seconde : %d \n", tps_rep_moy);
 
