@@ -9,12 +9,13 @@
 
 #define NBR_OPS 10                  // Nombre d'operateur
 #define NBR_HEURES 11              // Duree de la journee
-#define NBR_JOUR 1                 // Nombre de jour de la simulation
+#define NBR_JOUR 2                 // Nombre de jour de la simulation
 #define minsrv 100                 // Duree min du service
 #define maxsrv 600                 // Duree max du service
 #define lambda 0.05                // lambda
 #define NOM_FIC_DONNES "Data.txt"  // Nom du fichier
-
+#define HEURE_DEB 8
+#define HEURE_FIN 19
 
 // Structure et liste chainee
 
@@ -220,7 +221,7 @@ int tps_attente(T_noeud *Donnees)
     int tps_rep_moy;
     float compteur = 0.0;
 
-    while(courant -> suiv != NULL)
+    while(courant != NULL)
     {
         moy_attente = moy_attente + courant -> data.duree_attente;
         tps_rep_moy = tps_rep_moy + (courant -> data.fin_prise_en_charge - courant -> data.h_arrivee);
@@ -233,7 +234,7 @@ int tps_attente(T_noeud *Donnees)
         compteur++;
         courant = courant -> suiv;
     }
-    return min_attente, max_attente, ceil(moy_attente / compteur), ceil(tps_rep_moy / compteur);
+    return min_attente, max_attente, (int)ceil(moy_attente / compteur), (int)ceil(tps_rep_moy / compteur);
 }
 
 
@@ -264,7 +265,7 @@ int main(void)
     int simu_centre_appel[NBR_OPS] = {0};
 
     // Simulation
-    for(int i = 0; i < NBR_JOUR; i++)
+    for(int i = 1; i <= NBR_JOUR; i++)
     {   
         
         // tableau contenant l'heure d'arrivee des clients
@@ -279,50 +280,52 @@ int main(void)
                 client.h_arrivee = j;
                 ajout_client(&file_attente, client);
             }
-
-            // regarde s'il y a des gens dans la file d'attente & si un operateur est libre
-            // si oui, enregistre son tps de debut de prise en charge + genere une duree aleatoire de conversation client/ops
-            int compteur = compte_client(file_attente);
-            printf("Jour %d, Heure actuelle : %d, Nombre de clients en attente : %d\n", i, j, compte_client(file_attente));
-            int *libre = ops_libre(simu_centre_appel); // renvoie un tableau avec 0 si l'operateur est libre
-            for(int k = 0; k < NBR_OPS; k++)
+            if (HEURE_DEB *3600 <= j && j <= HEURE_FIN * 3600)
             {
-                if ((libre[k] == 0) && (compteur >= 1))
+                // regarde s'il y a des gens dans la file d'attente & si un operateur est libre
+                // si oui, enregistre son tps de debut de prise en charge + genere une duree aleatoire de conversation client/ops
+                int compteur = compte_client(file_attente);
+                printf("Jour %d, Heure actuelle : %d, Nombre de clients en attente : %d\n", i, j, compte_client(file_attente));
+                int *libre = ops_libre(simu_centre_appel); // renvoie un tableau avec 0 si l'operateur est libre
+                for(int k = 0; k < NBR_OPS; k++)
                 {
-                    compteur = compteur - 1;
-                    struct Client client = pop_client(&file_attente);
-                    //Donnees a ajouter
-                    client.debut_prise_en_charge = j;
-                    int tps_conversation = tps_prise_en_charge();
-                    simu_centre_appel[k] = tps_conversation;
-                    client.duree_attente = j - client.h_arrivee;
-                    client.fin_prise_en_charge = j + tps_conversation;
-                    client.jour = i;
-                    ajout_client(&Donnees, client);                              // On enregistre les differentes donnes dans client puis on l'ajoute a la liste des donnes.
+                    if ((libre[k] == 0) && (compteur >= 1))
+                    {
+                        compteur = compteur - 1;
+                        struct Client client = pop_client(&file_attente);
+                        //Donnees a ajouter
+                        client.debut_prise_en_charge = j;
+                        int tps_conversation = tps_prise_en_charge();
+                        simu_centre_appel[k] = tps_conversation;
+                        client.duree_attente = j - client.h_arrivee;
+                        client.fin_prise_en_charge = j + tps_conversation;
+                        client.jour = i;
+                        ajout_client(&Donnees, client);                              // On enregistre les differentes donnes dans client puis on l'ajoute a la liste des donnes.
+                    }
                 }
-            }
-            // simule la seconde passee
-            for(int l = 0; l < NBR_OPS; l++)  //Si 
-            {
-                if (simu_centre_appel[l] > 0)
-                    simu_centre_appel[l] = simu_centre_appel[l] - 1;
-            }
-            moy_file_attente = moy_file_attente + compteur;
-            if (compteur < min_file_attente)
-                min_file_attente = compteur;
-            if (compteur > max_file_attente)
-                max_file_attente = compteur;
+                // simule la seconde passee
+                for(int l = 0; l < NBR_OPS; l++)  //Si 
+                {
+                    if (simu_centre_appel[l] > 0)
+                        simu_centre_appel[l] = simu_centre_appel[l] - 1;
+                }
+                moy_file_attente = moy_file_attente + compteur;
+                if (compteur < min_file_attente)
+                    min_file_attente = compteur;
+                if (compteur > max_file_attente)
+                    max_file_attente = compteur;
 
-            if (compte_client(file_attente) == 0)
-            {
-                int ok = 0;
-                while(ok < NBR_OPS && simu_centre_appel[ok] == 0 )
-                    ok++;
-                if (ok == NBR_OPS)
-                    if (j < NBR_HEURES * 3600)
-                        h_fin_de_service = NBR_HEURES * 3600;
-                    else 
-                        h_fin_de_service = j;
+                if (compte_client(file_attente) == 0)
+                {
+                    int ok = 0;
+                    while(ok < NBR_OPS && simu_centre_appel[ok] == 0 )
+                        ok++;
+                    if (ok == NBR_OPS)
+                        if (j < NBR_HEURES * 3600)
+                            h_fin_de_service = HEURE_FIN * 3600;
+                        else 
+                            h_fin_de_service = j;
+                }
             }
         }
 
