@@ -7,12 +7,12 @@
 
 // def constantes modifiable
 
-#define NBR_OPS 5                  // Nombre d'operateur
+#define NBR_OPS 2                  // Nombre d'operateur
 #define NBR_HEURES 11              // Duree de la journee
 #define NBR_JOUR 1                 // Nombre de jour de la simulation
 #define minsrv 100                 // Duree min du service
 #define maxsrv 600                 // Duree max du service
-#define lambda 0.06                // lambda
+#define lambda 0.1                // lambda
 #define NOM_FIC_DONNES "Data.txt"  // Nom du fichier
 
 
@@ -39,7 +39,7 @@ int* simu_arrivee(void);                                                    // C
 bool compare_tps(int j, int *tab);                                          // comparaison entre tableau de simu_arrivee et l'heure actuelle
 int tps_prise_en_charge(void);                                              // Renvoie la duree de prise en charge, (choisit au hasard entre minsrv et maxsrv)
 void ajout_client(T_noeud *file, struct Client nv_client);                  // Ajoute un client a la liste chainee
-struct Client pop_client(T_noeud *tete);                                    // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
+struct Client pop_client(T_noeud **tete);                                    // Retire un client et renvoie les donnes du clients (Heure_prise en charge,Duree attente ....)
 int compte_client(T_noeud *tete);                                           // Compte le nombre de clients present dans la file ??? File d'attente 
 int* ops_libre(int* tableau);                                               // Prend un tableau contenant les operateurs, et determine si ils sont libres ou pas
 void convertisseur_tps(int n, int *heures, int *minutes, int *secondes);     // Transforme un entier en seconde et renvoie , l'heure, la minute et la seconde.
@@ -111,35 +111,38 @@ void ajout_client(T_noeud *file, struct Client nv_client)
 
 // retirer un client de la file
 
-struct Client pop_client(T_noeud *tete) 
-{
-    T_noeud *nouveau = tete;
-
-    if (nouveau == NULL)
-    {
+// Fonction pop pour retirer un client de la liste chaînée
+struct Client pop_client(T_noeud **tete) {
+    T_noeud *courant = *tete;
+    
+    // Si la liste est vide, on retourne un client avec une heure d'arrivée invalide
+    if (courant == NULL) {
         struct Client sauvegarde;
-        sauvegarde.h_arrivee = -1;
+        sauvegarde.h_arrivee = -1;  // Valeur d'indication d'erreur
         return sauvegarde;
     }
 
-    if (nouveau -> suiv == NULL) 
-    {
-        struct Client sauvegarde = tete->data;
-        free(tete);
-        tete = NULL;
+    // Si la liste n'a qu'un seul élément
+    if (courant->suiv == NULL) {
+        struct Client sauvegarde = courant->data;  // Sauvegarde le client
+        free(courant);  // Libère le noeud
+        *tete = NULL;  // Met la tête à NULL car la liste devient vide
         return sauvegarde;
     }
 
-    T_noeud *courant = tete;
-    while (courant -> suiv -> suiv != NULL) 
-        courant = courant -> suiv;
+    // Si la liste a plusieurs éléments
+    T_noeud *precedent = NULL;
+    while (courant->suiv != NULL) {
+        precedent = courant;
+        courant = courant->suiv;
+    }
 
-    T_noeud *dernier = courant -> suiv ;
-    struct Client sauvegarde = dernier -> data ;
-    courant -> suiv = NULL;
+    // Le dernier élément de la liste (client à retirer)
+    struct Client sauvegarde = courant->data;
+    precedent->suiv = NULL;  // Retirer le dernier élément de la liste
+    free(courant);  // Libère la mémoire allouée pour le dernier noeud
 
-    free(dernier);
-    return sauvegarde ;
+    return sauvegarde;
 }
 
 
@@ -278,8 +281,7 @@ int main(void)
                 if ((libre[k] == 0) && (compteur >= 1))
                 {
                     compteur = compteur - 1;
-                    struct Client client = pop_client(file_attente);
-                    printf("1\n");
+                    struct Client client = pop_client(&file_attente);
                     //Donnees a ajouter
                     client.debut_prise_en_charge = j;
                     int tps_conversation = tps_prise_en_charge();
@@ -290,14 +292,12 @@ int main(void)
                     ajout_client(Donnees, client);                              // On enregistre les differentes donnes dans client puis on l'ajoute a la liste des donnes.
                 }
             }
-            printf("2\n");
             // simule la seconde passee
             for(int l = 0; l < NBR_OPS; l++)  //Si 
             {
                 if (simu_centre_appel[l] > 0)
                     simu_centre_appel[l] = simu_centre_appel[l] - 1;
             }
-            printf("3\n");
             moy_file_attente = moy_file_attente + compteur;
             if (compteur < min_file_attente)
                 min_file_attente = compteur;
@@ -315,7 +315,6 @@ int main(void)
                     else 
                         h_fin_de_service = j;
             }
-            printf("4\n");
         }
 
 // Traitement des donnes
